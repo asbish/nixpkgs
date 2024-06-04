@@ -81,20 +81,50 @@ in
         Only log messages with the given severity or above.
       '';
     };
+
+    environmentFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      example = "/root/prometheus-snmp-exporter.env";
+      description = ''
+        Environment file as defined in {manpage}`systemd.exec(5)`.
+
+        Secrets may be passed to the service without adding them to the
+        world-readable Nix store, by specifying placeholder variables as
+        the option value in Nix and setting these variables accordingly in the
+        environment file.
+
+        Environment variables from this file will be interpolated into the
+        config file using envsubst with this syntax:
+        `$ENVIRONMENT ''${VARIABLE}`
+
+        For variables to use see [configuration](https://github.com/prometheus/snmp_exporter?tab=readme-ov-file#configuration).
+
+        Note that this file needs to be available on the host on which
+        this exporter is running.
+      '';
+    };
   };
   serviceOpts = let
     uncheckedConfigFile = if cfg.configurationPath != null
                           then cfg.configurationPath
                           else "${pkgs.writeText "snmp-exporter-conf.yml" (builtins.toJSON cfg.configuration)}";
-    configFile = if cfg.enableConfigCheck then
-      checkConfig uncheckedConfigFile
-    else
-      uncheckedConfigFile;
-    in {
+    configFile = if cfg.enableConfigCheck
+                 then checkConfig uncheckedConfigFile
+                 else uncheckedConfigFile;
+    expandEnvVarsOptionStr = "--config.expand-environment-variables";
+    expandEnvVarsOption =
+      if (cfg.environmentFile == null) || (builtins.elem expandEnvVarsOptionStr cfg.extraFlags)
+      then ""
+      else expandEnvVarsOptionStr;
+  in
+  {
     serviceConfig = {
+      EnvironmentFile = lib.mkIf (cfg.environmentFile != null) [ cfg.environmentFile ];
       ExecStart = ''
         ${pkgs.prometheus-snmp-exporter}/bin/snmp_exporter \
           --config.file=${escapeShellArg configFile} \
+          ${expandEnvVarsOption} \
           --log.format=${escapeShellArg cfg.logFormat} \
           --log.level=${cfg.logLevel} \
           --web.listen-address=${cfg.listenAddress}:${toString cfg.port} \
