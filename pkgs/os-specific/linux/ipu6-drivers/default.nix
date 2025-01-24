@@ -8,13 +8,13 @@
 
 stdenv.mkDerivation rec {
   pname = "ipu6-drivers";
-  version = "unstable-2024-11-19";
+  version = "unstable-2025-01-19";
 
   src = fetchFromGitHub {
-    owner = "intel";
+    owner = "jwrdegoede";
     repo = "ipu6-drivers";
-    rev = "0ad4988248d7e9382498a0b47fc78bb990b29a58";
-    hash = "sha256-UFvwuoAzwk1k4YiUK+4EeMKeTx9nVvBgBN5JKAfqZkQ=";
+    rev = "f2a1b54afd8537f52f17adcadd7d3e064cf704a3";
+    hash = "sha256-28+ho4QN09dZ3N0DFoYnntgTLHqEWK2+MTAz8nzC8IY=";
   };
 
   patches = [
